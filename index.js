@@ -51,16 +51,16 @@ const noOfGames = function(games, player) {
 }
 
 const scoreGame = function(games, g) {
-  const playedTogetherWeight = 50
+  const playedTogetherWeight = 75
   const metWeight = 50
-  const togetherScore = (
+  const togetherScore = playedTogetherWeight * (
     hasPlayedTogether(games, g[0][0], g[0][1]) * 1 +
-    hasPlayedTogether(games, g[0][0], g[0][1]) * 1) * playedTogetherWeight
-  const metScore = (
+    hasPlayedTogether(games, g[0][0], g[0][1]) * 1)
+  const metScore =  metWeight * (
     hasMet(games, g[0][0], g[1][0]) * 1 +
     hasMet(games, g[0][0], g[1][1]) * 1 +
     hasMet(games, g[0][1], g[1][0]) * 1 +
-    hasMet(games, g[0][1], g[1][1]) * 1) * metWeight
+    hasMet(games, g[0][1], g[1][1]) * 1)
 
   return togetherScore + metScore
 }
