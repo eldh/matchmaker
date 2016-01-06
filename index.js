@@ -87,100 +87,186 @@ const getBestRound = function(games, rounds) {
   return r.reduce(r.minBy(scoreRoundWithGames), r.take(4, games), rounds)
 }
 
-// console.log('———————————————— \n'
-  // ,makeSingleRound(NO_OF_COURTS, playersForRound(NO_OF_COURTS, PLAYED_GAMES, INITIAL_PLAYERS))
-  // , getBestRound(PLAYED_GAMES, makeManyRounds(NO_OF_COURTS, playersForRound(NO_OF_COURTS, PLAYED_GAMES, INITIAL_PLAYERS), 100))
-  // , scoreGame(PLAYED_GAMES, [['Andreas','Test1'],['Putte','Farzan']])
-  // , scoreGame(PLAYED_GAMES, [['Andreas','Pelle'],['Putte','Farzan']])
-  // , scoreGame(PLAYED_GAMES, [['Andreas','Henryk'],['Filip','Farzan']])
-  // , scoreGame(PLAYED_GAMES, [['Andreas','Henryk'],['Filip','Test1']])
-  // , scoreGame(PLAYED_GAMES, [['Andreas','Stefan'],['Filip','Test1']])
-  // , scoreGame(PLAYED_GAMES, [['Henryk','Andreas'],['Farzan','Tränk']])
-  // , scoreGame(PLAYED_GAMES, [['Stefan','Andreas'],['Test3','Test1']])
-  // ,availablePlayers(INITIAL_PLAYERS, notAvailable)
-// )
-// console.log('END ———————————————— \n')
+const gamesForPlayer = function(games, player) {
+  return r.filter((g) => {
+    return r.contains(player, r.flatten(g))
+  }, games)
+}
+
+const scoreForGame = function(game) {
+  if (!game[2]) return [0, 0]
+  return r.reduce((score, set) => {
+    const winner = set[0] > set[1] ? 0 : 1
+    score[winner] = score[winner] + 5
+    score[0] = score[0] + set[0] - set[1]
+    score[1] = score[1] + set[1] - set[0]
+    return score
+  }, [0, 0], game[2])
+}
+
+const scoreForPlayer = function(games, player) {
+  return r.reduce((sum, game) => {
+    const team =  r.contains(player, game[0]) ? 0 : 1
+    const score = scoreForGame(game)
+    return sum + score[team]
+  }, 0, gamesForPlayer(games, player)) / noOfGames(games, player)
+}
+
+const sortPlayersByScore = function(games, players) {
+  return r.sort((p1, p2) => {
+    return -(scoreForPlayer(games, p1) - scoreForPlayer(games, p2))
+  }, players)
+}
 
 const NO_OF_COURTS = 4
 
 const INITIAL_PLAYERS = [
-'Andreas',
-'Stefan',
+'Andreas Eldh',
+'Stefan Eldh',
 'Farzan',
 'Putte',
-'Pelle',
-'Henryk',
-'Filip',
-'Tränk',
-'Anders',
-'Björn',
-'Test2',
-'Test3',
-'Test4',
-'Test5',
-'Test6',
-'Test7',
-'Test8',
-'Test9',
-'Test10',
-'Test11',
-'Test12',
-'Test13',
-'Test14',
-'Test15',
+'Henryk Dolata',
+'Filip Dolata',
+'Henrik Nässén',
+'Björn Johansson',
+'Andreas Lindberg',
+'Kent Rompala',
+'Örjan Unnerstedt',
+'Roger',
+'Anders Holmberg',
+'Micke Petterson',
+'Anders Sellén',
+'Göran Wikström',
+'Eldrin Khan',
+'Henning Lidholm',
+'Per Engelöv',
 ]
 
-const NOT_AVAILABLE = ['Test4', 'Andreas']
+const NOT_AVAILABLE = ['Göran Wikström']
 
 const PLAYED_GAMES = [
-  [ [ 'Andreas','Stefan' ],[ 'Putte','Farzan' ] ],
-  [ [ 'Pelle','Henryk' ],[ 'Filip','Tränk' ] ],
-  [ [ 'Anders','Björn' ],[ 'Test2','Test3' ] ],
-  [ [ 'Test7','Test6' ],[ 'Andreas','Filip' ] ],
-  [ [ 'Test11', 'Test5' ], [ 'Tränk', 'Putte' ] ],
-  [ [ 'Test12', 'Farzan' ], [ 'Test4', 'Test13' ] ],
-  [ [ 'Stefan', 'Test10' ], [ 'Test14', 'Pelle' ] ],
-  [ [ 'Test9', 'Test2' ], [ 'Test5', 'Henryk' ] ],
-  [ [ 'Test7', 'Test14' ], [ 'Björn', 'Test4' ] ],
-  [ [ 'Test12', 'Test6' ], [ 'Test8', 'Test3' ] ],
-  [ [ 'Tränk', 'Henryk' ], [ 'Test10', 'Stefan' ] ],
-  [ [ 'Test7', 'Filip' ], [ 'Test11', 'Test9' ] ],
-  [ [ 'Test13', 'Test12' ], [ 'Andreas', 'Test15' ] ],
-  [ [ 'Test4', 'Test8' ], [ 'Pelle', 'Test15' ] ],
-  [ [ 'Test3', 'Test11' ], [ 'Farzan', 'Test5' ] ],
-  [ [ 'Test13', 'Putte' ], [ 'Test2', 'Test9' ] ],
-  [ [ 'Test6', 'Test10' ], [ 'Test12', 'Test2' ] ],
-  [ [ 'Anders', 'Test8' ], [ 'Test4', 'Test11' ] ],
-  [ [ 'Farzan', 'Björn' ], [ 'Test9', 'Test5' ] ],
-  [ [ 'Test14', 'Test15' ], [ 'Filip', 'Tränk' ] ],
-  [ [ 'Test15', 'Test3' ], [ 'Stefan', 'Andreas' ] ],
-  [ [ 'Filip', 'Henryk' ], [ 'Test14', 'Björn' ] ],
-  [ [ 'Pelle', 'Test10' ], [ 'Putte', 'Test13' ] ],
-  [ [ 'Filip', 'Anders' ], [ 'Putte', 'Test8' ] ],
-  [ [ 'Andreas', 'Pelle' ], [ 'Björn', 'Anders' ] ],
-  [ [ 'Test7', 'Test4' ], [ 'Henryk', 'Test2' ] ],
-  [ [ 'Test13', 'Tränk' ], [ 'Farzan', 'Test3' ] ],
-  [ [ 'Test14', 'Stefan' ], [ 'Test6', 'Test5' ] ],
-  [ [ 'Test12', 'Test8' ], [ 'Björn', 'Henryk' ] ],
-  [ [ 'Test5', 'Test2' ], [ 'Test11', 'Test9' ] ],
-  [ [ 'Test10', 'Test4' ], [ 'Stefan', 'Anders' ] ],
-  [ [ 'Tränk', 'Test15' ], [ 'Test7', 'Test6' ] ],
-  [ [ 'Test11', 'Test14' ], [ 'Putte', 'Andreas' ] ],
-  [ [ 'Pelle', 'Anders' ], [ 'Test12', 'Test3' ] ],
-  [ [ 'Test9', 'Test7' ], [ 'Test10', 'Farzan' ] ],
-  [ [ 'Test13', 'Test6' ], [ 'Test4', 'Test8' ] ],
-  [ [ 'Henryk', 'Test7' ], [ 'Anders', 'Putte' ] ],
-  [ [ 'Björn', 'Test3' ], [ 'Pelle', 'Test9' ] ],
-  [ [ 'Test8', 'Test15' ], [ 'Tränk', 'Test2' ] ],
-  [ [ 'Filip', 'Test6' ], [ 'Test5', 'Farzan' ] ],
-  [ [ 'Test11', 'Test6' ], [ 'Stefan', 'Test10' ] ],
-  [ [ 'Test7', 'Farzan' ], [ 'Test13', 'Test14' ] ],
-  [ [ 'Björn', 'Test5' ], [ 'Test12', 'Test15' ] ],
-  [ [ 'Test9', 'Test3' ], [ 'Test2', 'Test8' ] ],
-  [ [ 'Test5', 'Anders' ], [ 'Test11', 'Stefan' ] ],
-  [ [ 'Test8', 'Pelle' ], [ 'Test7', 'Test10' ] ],
-  [ [ 'Test14', 'Henryk' ], [ 'Test15', 'Test13' ] ],
-  [ [ 'Test12', 'Filip' ], [ 'Putte', 'Tränk' ] ],
+  // round 1
+  [ [ 'Filip Dolata', 'Göran Wikström' ],
+    [ 'Anders Holmberg', 'Henning Lidholm' ], [[21,10], [21,14]] ],
+  [ [ 'Per Engelöv', 'Andreas Lindberg' ],
+    [ 'Roger', 'Anders Sellén' ], [[21,8],[21,10]] ],
+  [ [ 'Micke Petterson', 'Örjan Unnerstedt' ],
+    [ 'Björn Johansson', 'Kent Rompala' ], [[21,12], [21,12]] ],
+  [ [ 'Henryk Dolata', 'Farzan' ],
+    [ 'Henrik Nässén', 'Eldrin Khan' ], [[21,15], [21,14]] ],
+  //[ 'Putte', 'Stefan Eldh', 'Andreas Eldh' ]
+
+  // round 2
+  [ [ 'Kent Rompala', 'Henryk Dolata' ],
+    [ 'Göran Wikström', 'Roger' ], [[23,21], [21,12]] ],
+  [ [ 'Andreas Eldh', 'Filip Dolata' ],
+    [ 'Henrik Nässén', 'Björn Johansson' ], [[20,22], [20,22]] ],
+  [ [ 'Andreas Lindberg', 'Eldrin Khan' ],
+    [ 'Anders Holmberg', 'Micke Petterson' ], [[10,21], [16,21]] ],
+  [ [ 'Anders Sellén', 'Farzan' ],
+    [ 'Stefan Eldh', 'Örjan Unnerstedt' ], [[24,22], [14,21]] ],
+  //[ 'Putte', 'Henning Lidholm', 'Per Engelöv' ]
+
+  // round 3
+  [ [ 'Henrik Nässén', 'Andreas Eldh' ],
+    [ 'Anders Holmberg', 'Henryk Dolata' ], [[21,5], [21,16]] ],
+  [ [ 'Andreas Lindberg', 'Göran Wikström' ],
+    [ 'Örjan Unnerstedt', 'Eldrin Khan' ], [[20,22], [21,14]] ],
+  [ [ 'Henning Lidholm', 'Roger' ],
+    [ 'Anders Sellén', 'Björn Johansson' ], [[20,22], [20,22]] ],
+  [ [ 'Kent Rompala', 'Micke Petterson' ],
+    [ 'Stefan Eldh', 'Per Engelöv' ], [[17,21], [14,21]] ],
+  //[ 'Farzan', 'Putte', 'Filip Dolata' ]
+
+  // round 4
+  [ [ 'Anders Holmberg', 'Filip Dolata' ],
+    [ 'Kent Rompala', 'Stefan Eldh' ], [[22,20], [21,17]] ],
+  [ [ 'Per Engelöv', 'Göran Wikström' ],
+    [ 'Farzan', 'Roger' ], [[21,10], [21,10]] ],
+  [ [ 'Anders Sellén', 'Henning Lidholm' ],
+    [ 'Henrik Nässén', 'Micke Petterson' ], [[13,21], [20,22]] ],
+  [ [ 'Andreas Eldh', 'Örjan Unnerstedt' ],
+    [ 'Andreas Lindberg', 'Eldrin Khan' ], [[21,13], [21,19]] ],
+  //[ 'Putte', 'Henryk Dolata', 'Björn Johansson' ]
+
+  // round 5
+  [ [ 'Anders Holmberg', 'Kent Rompala' ],
+    [ 'Henryk Dolata', 'Anders Sellén' ], [[20,22], [21,16]] ],
+  [ [ 'Örjan Unnerstedt', 'Per Engelöv' ],
+    [ 'Henning Lidholm', 'Micke Petterson' ], [[21,12], [17,21]] ],
+  [ [ 'Andreas Eldh', 'Stefan Eldh' ],
+    [ 'Roger', 'Björn Johansson' ], [[21,13], [21,17]] ],
+  [ [ 'Farzan', 'Andreas Lindberg' ],
+    [ 'Göran Wikström', 'Filip Dolata' ], [[20,22], [18,21]] ],
+  //[ 'Putte', 'Henrik Nässén', 'Eldrin Khan' ]
+
+  // round 6
+  [ [ 'Göran Wikström', 'Henryk Dolata' ],
+    [ 'Roger', 'Stefan Eldh' ], [[17,21], [10,21]] ],
+  [ [ 'Andreas Eldh', 'Anders Holmberg' ],
+    [ 'Micke Petterson', 'Örjan Unnerstedt' ], [[21,19], [20,22]] ],
+  [ [ 'Björn Johansson', 'Henning Lidholm' ],
+    [ 'Eldrin Khan', 'Farzan' ], [[21,15], [21,15]] ],
+  [ [ 'Per Engelöv', 'Anders Sellén' ],
+    [ 'Filip Dolata', 'Henrik Nässén' ], [[11,21], [12,21]] ],
+  // [ 'Putte', 'Andreas Lindberg', 'Kent Rompala' ]
+
+  // round 7
+  [ [ 'Kent Rompala', 'Henrik Nässén' ],
+    [ 'Björn Johansson', 'Putte' ], [[19,21], [17,21]] ],
+  [ [ 'Anders Sellén', 'Micke Petterson' ],
+    [ 'Andreas Eldh', 'Farzan' ], [[11,21], [13,21]] ],
+  [ [ 'Andreas Lindberg', 'Filip Dolata' ],
+    [ 'Henning Lidholm', 'Henryk Dolata' ], [[21,14], [21,17]] ],
+  [ [ 'Eldrin Khan', 'Per Engelöv' ],
+    [ 'Stefan Eldh', 'Anders Holmberg' ], [[11,21], [19,21]] ],
+  // [ 'Örjan Unnerstedt', 'Roger', 'Göran Wikström' ]
+
+  // round 8
+  [ [ 'Filip Dolata', 'Stefan Eldh' ],
+    [ 'Örjan Unnerstedt', 'Andreas Eldh' ], [[21,14], [21,8]] ],
+  [ [ 'Kent Rompala', 'Henryk Dolata' ],
+    [ 'Björn Johansson', 'Henning Lidholm' ], [[23,25], [21,23]] ],
+  [ [ 'Putte', 'Farzan' ],
+    [ 'Andreas Lindberg', 'Roger' ], [[10,21], [13,21]] ],
+  [ [ 'Henrik Nässén', 'Per Engelöv' ],
+    [ 'Göran Wikström', 'Micke Petterson' ], [[21,11], [21,11]] ],
+  // [ 'Anders Holmberg', 'Eldrin Khan', 'Anders Sellén' ]
+
+  // round 9
+  [ [ 'Andreas Eldh', 'Kent Rompala' ],
+    [ 'Stefan Eldh', 'Henning Lidholm' ], [[17,21], [15,21]] ],
+  [ [ 'Anders Sellén', 'Örjan Unnerstedt' ],
+    [ 'Putte', 'Henryk Dolata' ], [[10,21], [16,21]] ],
+  [ [ 'Anders Holmberg', 'Andreas Lindberg' ],
+    [ 'Farzan', 'Björn Johansson' ], [[21,8], [21,11]] ],
+  [ [ 'Filip Dolata', 'Roger' ],
+    [ 'Henrik Nässén', 'Eldrin Khan' ], [[21,11], [21,13]] ],
+  // [ 'Micke Petterson', 'Göran Wikström', 'Per Engelöv' ]
+
+  // round 10
+  [ [ 'Micke Petterson', 'Per Engelöv' ],
+    [ 'Örjan Unnerstedt', 'Putte' ], [[19,21], [17,21]] ],
+  [ [ 'Anders Sellén', 'Stefan Eldh' ],
+    [ 'Björn Johansson', 'Andreas Lindberg' ], [[19,21], [13,21]] ],
+  [ [ 'Eldrin Khan', 'Anders Holmberg' ],
+    [ 'Henrik Nässén', 'Kent Rompala' ], [[15,21], [17,21]] ],
+  [ [ 'Filip Dolata', 'Farzan' ],
+    [ 'Henryk Dolata', 'Roger' ], [[21,17], [21,15]] ],
+  // [ 'Andreas Eldh', 'Göran Wikström', 'Henning Lidholm' ]
+
+  // round 11
+  [ [ 'Anders Sellén', 'Andreas Lindberg' ],
+    [ 'Henrik Nässén', 'Kent Rompala' ], [[27,29], [13,21]] ],
+  [ [ 'Björn Johansson', 'Örjan Unnerstedt' ],
+    [ 'Roger', 'Micke Petterson' ], [[17,21], [21,16]] ],
+  [ [ 'Anders Holmberg', 'Per Engelöv' ],
+    [ 'Andreas Eldh', 'Henning Lidholm' ], [[12,21], [21,17]] ],
+  [ [ 'Putte', 'Stefan Eldh' ],
+    [ 'Filip Dolata', 'Henryk Dolata' ], [[21,11], [21,18]] ],
+  // [ 'Farzan', 'Eldrin Khan', 'Göran Wikström' ]
+
+  // , [[,], [,]]
 ]
 
 const makeNextRound = function() {
@@ -193,7 +279,7 @@ const makeNextRound = function() {
         PLAYED_GAMES,
         availablePlayers(INITIAL_PLAYERS, NOT_AVAILABLE)
       ),
-      100
+      500
     )
   )
 }
@@ -209,12 +295,21 @@ const printMatchesPlayed = function() {
     console.log(`${p}: ${noOfGames(PLAYED_GAMES, p)}`)
   })
 }
+const printScore = function() {
+  console.log('\n\n————————————— Poängställning:\n')
+  sortPlayersByScore(PLAYED_GAMES, INITIAL_PLAYERS).forEach((p) => {
+    console.log(`${p}: ${scoreForPlayer(PLAYED_GAMES, p)}`)
+  })
+}
 
 const printRound = function(round) {
   console.log('\n\n————————————— Nästa runda:\n')
   console.log(round)
+  const isPlaying = r.contains(r.__, r.flatten(round))
+  console.log(r.reject(isPlaying, INITIAL_PLAYERS))
 }
 
-// console.log(makeFirstRound())
+// printRound(makeFirstRound())
 printMatchesPlayed()
-printRound(makeNextRound())
+printScore()
+//printRound(makeNextRound())
