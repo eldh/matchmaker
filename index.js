@@ -310,6 +310,6 @@ const printRound = function(round) {
 }
 
 // printRound(makeFirstRound())
-printMatchesPlayed()
+// printMatchesPlayed()
 printScore()
 //printRound(makeNextRound())
