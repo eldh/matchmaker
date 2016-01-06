@@ -2,55 +2,55 @@ require('babel-register')
 const r = require('ramda')
 const shuffle = require('knuth-shuffle').knuthShuffle
 
-const makeGame = function(p) {
+const makeGame = r.curry((p) => {
   return [
     [p[0], p[1]],
     [p[2], p[3]],
   ]
-}
+})
 
-const hasMet = function(games, one, two) {
-  const hasMetInGame = function(game) {
+const hasMet = r.curry((games, one, two) => {
+  const hasMetInGame = (game) => {
     return r.contains(one, game[0]) && r.contains(two, game[1]) ||
       r.contains(one, game[1]) && r.contains(two, game[0])
   }
   return r.any(hasMetInGame, games)
-}
+})
 
-const hasPlayedTogether = function(games, one, two) {
-  const hasPlayedTogetherInGame = function(game) {
+const hasPlayedTogether = r.curry((games, one, two) => {
+  const hasPlayedTogetherInGame = (game) => {
     return r.contains(one, game[0]) && r.contains(two, game[0]) ||
       r.contains(one, game[1]) && r.contains(two, game[1])
   }
   return r.any(hasPlayedTogetherInGame, games)
-}
+})
 
-const playersForRound = function(courts, games, players) {
+const playersForRound = r.curry((courts, games, players) => {
   const sorted = r.sort((p1, p2) => {
     return noOfGames(games, p1) > noOfGames(games, p2)
   }, players)
   return shuffle(sorted.slice(0, 4 * courts))
-}
+})
 
-const makeSingleRound = function(courts, players) {
+const makeSingleRound = r.curry((courts, players) => {
   return r.map((i) => {
     return makeGame(players.slice(i * courts, (i + 1) * courts))
   }, r.range(0, courts))
-}
+})
 
-const availablePlayers = function(initial, unavailable) {
+const availablePlayers = r.curry((initial, unavailable) => {
   const isUnavailable = r.contains(r.__, unavailable)
   return r.reject(isUnavailable, initial)
-}
+})
 
-const noOfGames = function(games, player) {
+const noOfGames = r.curry((games, player) => {
   const containsPlayer = r.contains(player)
   return r.reduce((sum, game) => {
     return r.any(containsPlayer, game) ? sum + 1 : sum
   }, 0, games)
-}
+})
 
-const scoreGame = function(games, g) {
+const scoreGame = r.curry((games, g) => {
   const playedTogetherWeight = 75
   const metWeight = 50
   const togetherScore = playedTogetherWeight * (
@@ -63,37 +63,37 @@ const scoreGame = function(games, g) {
     hasMet(games, g[0][1], g[1][1]) * 1)
 
   return togetherScore + metScore
-}
+})
 
-const makeManyRounds = function(courts, players, count = 100) {
+const makeManyRounds = r.curry((courts, players, count = 100) => {
   return r.map(
     (i) => {
       const p = shuffle(players.slice(0))
       return makeSingleRound(courts, p)
     }
     , r.range(0, count))
-}
+})
 
-const scoreRound = function(games, round) {
+const scoreRound = r.curry((games, round) => {
   return r.reduce((sum, game) => {
     return sum + scoreGame(games, game)
   }, 0, round)
-}
+})
 
-const getBestRound = function(games, rounds) {
+const getBestRound = r.curry((games, rounds) => {
   const scoreRoundWithGames = (round) => {
     return scoreRound(games, round)
   }
   return r.reduce(r.minBy(scoreRoundWithGames), r.take(4, games), rounds)
-}
+})
 
-const gamesForPlayer = function(games, player) {
+const gamesForPlayer = r.curry((games, player) => {
   return r.filter((g) => {
     return r.contains(player, r.flatten(g))
   }, games)
-}
+})
 
-const scoreForGame = function(game) {
+const scoreForGame = r.curry((game) => {
   if (!game[2]) return [0, 0]
   return r.reduce((score, set) => {
     const winner = set[0] > set[1] ? 0 : 1
@@ -102,21 +102,21 @@ const scoreForGame = function(game) {
     score[1] = score[1] + set[1] - set[0]
     return score
   }, [0, 0], game[2])
-}
+})
 
-const scoreForPlayer = function(games, player) {
+const scoreForPlayer = r.curry((games, player) => {
   return r.reduce((sum, game) => {
     const team =  r.contains(player, game[0]) ? 0 : 1
     const score = scoreForGame(game)
     return sum + score[team]
   }, 0, gamesForPlayer(games, player)) / noOfGames(games, player)
-}
+})
 
-const sortPlayersByScore = function(games, players) {
+const sortPlayersByScore = r.curry((games, players) => {
   return r.sort((p1, p2) => {
     return -(scoreForPlayer(games, p1) - scoreForPlayer(games, p2))
   }, players)
-}
+})
 
 const NO_OF_COURTS = 4
 
@@ -269,7 +269,7 @@ const PLAYED_GAMES = [
   // , [[,], [,]]
 ]
 
-const makeNextRound = function() {
+const makeNextRound = r.curry(() => {
   return getBestRound(
     PLAYED_GAMES,
     makeManyRounds(
@@ -282,27 +282,27 @@ const makeNextRound = function() {
       500
     )
   )
-}
+})
 
-const makeFirstRound = function() {
+const makeFirstRound = () => {
   const players = shuffle(availablePlayers(INITIAL_PLAYERS, NOT_AVAILABLE))
   return makeSingleRound(NO_OF_COURTS, players)
 }
 
-const printMatchesPlayed = function() {
+const printMatchesPlayed = () => {
   console.log('\n\n————————————— Spelade matcher:\n')
   INITIAL_PLAYERS.forEach((p) => {
     console.log(`${p}: ${noOfGames(PLAYED_GAMES, p)}`)
   })
 }
-const printScore = function() {
+const printScore = () => {
   console.log('\n\n————————————— Poängställning:\n')
   sortPlayersByScore(PLAYED_GAMES, INITIAL_PLAYERS).forEach((p) => {
     console.log(`${p}: ${scoreForPlayer(PLAYED_GAMES, p)}`)
   })
 }
 
-const printRound = function(round) {
+const printRound = (round) => {
   console.log('\n\n————————————— Nästa runda:\n')
   console.log(round)
   const isPlaying = r.contains(r.__, r.flatten(round))
@@ -311,5 +311,5 @@ const printRound = function(round) {
 
 // printRound(makeFirstRound())
 // printMatchesPlayed()
-printScore()
-//printRound(makeNextRound())
+// printScore()
+// printRound(makeNextRound())
