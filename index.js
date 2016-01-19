@@ -1,6 +1,7 @@
 require('babel-register')
 const r = require('ramda')
 const shuffle = require('knuth-shuffle').knuthShuffle
+const mapIndexed = r.addIndex(r.map)
 
 const makeGame = r.curry((p) => {
   return [
@@ -32,59 +33,87 @@ const playersForRound = r.curry((courts, games, players) => {
   return shuffle(sorted.slice(0, 4 * courts))
 })
 
+const availablePlayers = r.curry((initial, unavailable) => {
+  const isUnavailable = r.contains(r.__, unavailable)
+  return r.reject(isUnavailable, initial)
+})
+
+const noOfGames = (games, player) => {
+  return gamesForPlayer(games, player).length
+}
+
+const scoreGame = r.curry((playedGames, g) => {
+  const playedTogetherWeight = 75
+  const metWeight = 25
+  const hasMetAlready = hasMet(playedGames)
+  const togetherScore = playedTogetherWeight * (
+    hasPlayedTogether(playedGames, g[0][0], g[0][1]) * 1 +
+    hasPlayedTogether(playedGames, g[0][0], g[0][1]) * 1)
+  const metScore =  metWeight * (
+    hasMetAlready(g[0][0], g[1][0]) * 1 +
+    hasMetAlready(g[0][0], g[1][1]) * 1 +
+    hasMetAlready(g[0][1], g[1][0]) * 1 +
+    hasMetAlready(g[0][1], g[1][1]) * 1)
+
+  return togetherScore + metScore
+})
+
+const sortGamesByScore = r.curry((playedGames, allGames) => {
+  return r.sort((g1, g2) => {
+    return (scoreGame(playedGames, g1) - scoreGame(playedGames, g2))
+  }, allGames)
+})
+
 const makeSingleRound = r.curry((courts, players) => {
   return r.map((i) => {
     return makeGame(players.slice(i * courts, (i + 1) * courts))
   }, r.range(0, courts))
 })
 
-const availablePlayers = r.curry((initial, unavailable) => {
-  const isUnavailable = r.contains(r.__, unavailable)
-  return r.reject(isUnavailable, initial)
-})
+const makePairs = (one, allOthers) => {
+  return r.map(r.pair(one), allOthers)
+}
 
-const noOfGames = r.curry((games, player) => {
-  const containsPlayer = r.contains(player)
-  return r.reduce((sum, game) => {
-    return r.any(containsPlayer, game) ? sum + 1 : sum
-  }, 0, games)
-})
+const allPairs = (players) => {
+  return [].concat.apply([], mapIndexed((p, i) => {
+    const playersCopy = players.slice(0)
+    return makePairs(p, playersCopy.slice(i + 1))
+  }, players))
+}
 
-const scoreGame = r.curry((games, g) => {
-  const playedTogetherWeight = 75
-  const metWeight = 50
-  const togetherScore = playedTogetherWeight * (
-    hasPlayedTogether(games, g[0][0], g[0][1]) * 1 +
-    hasPlayedTogether(games, g[0][0], g[0][1]) * 1)
-  const metScore =  metWeight * (
-    hasMet(games, g[0][0], g[1][0]) * 1 +
-    hasMet(games, g[0][0], g[1][1]) * 1 +
-    hasMet(games, g[0][1], g[1][0]) * 1 +
-    hasMet(games, g[0][1], g[1][1]) * 1)
+const allGames = (players) => {
+  return r.filter(
+    (game) => r.allUniq(r.flatten(game)),
+    allPairs(allPairs(players))
+  )
+}
 
-  return togetherScore + metScore
-})
+const filterOutGamesWithPlayers = (games, players) => {
+  const playersIsInGame = (game) => {
+    return !r.allUniq(r.flatten(players.concat(game)))
+  }
+  return r.reject(playersIsInGame, games)
+}
 
-const makeManyRounds = r.curry((courts, players, count = 100) => {
-  return r.map(
-    (i) => {
-      const p = shuffle(players.slice(0))
-      return makeSingleRound(courts, p)
-    }
-    , r.range(0, count))
-})
+const getBestRound = (sortedGames, depth, playedGames) => {
+  const isValidRound = (round) => r.allUniq(r.flatten(round))
+  let filteredGames = sortedGames
+  let res = []
+  for (var i = 0; i < 1000; i++) {
+    filteredGames = r.slice(i, Infinity, sortedGames)
+    res = r.append(r.reduce((val, i) => {
+      filteredGames = filterOutGamesWithPlayers(filteredGames, r.flatten(val))
+      if (!filteredGames.length) return val
+      return r.append(r.head(filteredGames), val)
+    }, [], r.range(0, depth)), res)
+  }
+  return r.head(r.sortBy(scoreRound(playedGames), res))
+}
 
 const scoreRound = r.curry((games, round) => {
   return r.reduce((sum, game) => {
     return sum + scoreGame(games, game)
   }, 0, round)
-})
-
-const getBestRound = r.curry((games, rounds) => {
-  const scoreRoundWithGames = (round) => {
-    return scoreRound(games, round)
-  }
-  return r.reduce(r.minBy(scoreRoundWithGames), r.take(4, games), rounds)
 })
 
 const gamesForPlayer = r.curry((games, player) => {
@@ -93,7 +122,7 @@ const gamesForPlayer = r.curry((games, player) => {
   }, games)
 })
 
-const scoreForGame = r.curry((game) => {
+const scoreForGame = (game) => {
   if (!game[2]) return [0, 0]
   return r.reduce((score, set) => {
     const winner = set[0] > set[1] ? 0 : 1
@@ -102,7 +131,7 @@ const scoreForGame = r.curry((game) => {
     score[1] = score[1] + set[1] - set[0]
     return score
   }, [0, 0], game[2])
-})
+}
 
 const scoreForPlayer = r.curry((games, player) => {
   return r.reduce((sum, game) => {
@@ -269,20 +298,17 @@ const PLAYED_GAMES = [
   // , [[,], [,]]
 ]
 
-const makeNextRound = r.curry(() => {
+const makeNextRound = () => {
   return getBestRound(
-    PLAYED_GAMES,
-    makeManyRounds(
+    allGames(playersForRound(
       NO_OF_COURTS,
-      playersForRound(
-        NO_OF_COURTS,
-        PLAYED_GAMES,
-        availablePlayers(INITIAL_PLAYERS, NOT_AVAILABLE)
-      ),
-      500
-    )
+      PLAYED_GAMES,
+      availablePlayers(INITIAL_PLAYERS, NOT_AVAILABLE)
+    )),
+    NO_OF_COURTS,
+    PLAYED_GAMES
   )
-})
+}
 
 const makeFirstRound = () => {
   const players = shuffle(availablePlayers(INITIAL_PLAYERS, NOT_AVAILABLE))
@@ -306,10 +332,12 @@ const printRound = (round) => {
   console.log('\n\n————————————— Nästa runda:\n')
   console.log(round)
   const isPlaying = r.contains(r.__, r.flatten(round))
+  console.log('\n————————————— Står över:\n')
   console.log(r.reject(isPlaying, INITIAL_PLAYERS))
 }
+
 
 // printRound(makeFirstRound())
 // printMatchesPlayed()
 // printScore()
-// printRound(makeNextRound())
+console.log(makeNextRound())
