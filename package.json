@@ -8,9 +8,13 @@
     "babel-preset-stage-2": "^6.3.13",
     "babel-register": "^6.3.13",
     "knuth-shuffle": "^1.0.1",
+    "meow": "^4.0.0",
     "ramda": "^0.19.1"
   },
-  "devDependencies": {},
+  "devDependencies": {
+    "@dooer/eslint-config-dooer": "^1.7.1",
+    "eslint": "^4.14.0"
+  },
   "scripts": {
     "test": "test"
   },

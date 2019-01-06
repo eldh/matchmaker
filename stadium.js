@@ -1,0 +1,21 @@
+module.exports = {
+  PLAYERS: [
+    'Mattias Lundkvist',
+    'Andreas Jonsson',
+    'Stefan Eldh',
+    'Andreas Eldh',
+    'Björn Johansson',
+    'Erik Berner-Wik',
+    'Lennart Chrona',
+    'Abi',
+    'Karine Ehlin',
+    'Henrik Nässén',
+    'Tom Chabousseau',
+    'Freddy Jansson',
+    'Jonas Strandberg',
+    'Filip Dolata',
+    'Pelle Linusson',
+  ],
+  NO_OF_COURTS: 4,
+  NOT_AVAILABLE: [],
+}

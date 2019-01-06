@@ -1,0 +1,37 @@
+#!/usr/bin/env node
+/* eslint-disable no-unused-vars, no-console */
+const { printMatchesPlayed, printScore } = require('./scoreCalc')
+const { makeFirstRound, makeNextRound, printRound } = require('./roundCalc')
+const meow = require('meow')
+
+const commands = {
+  score: flags => {
+    if (flags.gamesPlayed) printMatchesPlayed()
+    printScore()
+  },
+  round: flags => {
+    if (flags.first) printRound(makeFirstRound())
+    else printRound(makeNextRound())
+  },
+}
+const match = (command, flags) => {
+  const func = commands[command]
+  if (!func) {
+    console.error('No command named ' + command)
+    process.exit(1)
+  }
+  func(flags)
+}
+
+const cli = meow(
+  `
+    Usage
+      $ foo <input>
+ 
+    Examples
+      $ match round
+      $ match round --first
+      $ match score --gamesPlayed
+`
+)
+match(cli.input[0], cli.flags)
